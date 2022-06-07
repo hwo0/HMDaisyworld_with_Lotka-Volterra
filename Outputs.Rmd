@@ -1,0 +1,170 @@
+---
+title: "figure 1 of Watson and Lovelock"
+author: "Helen Wu (Developed based on Robin Hankin's initial scripts)"
+date: "07/06/2022"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("Functions.R")
+```
+
+Note: This is a modified script for a research project concerning Hankin and Mitchell's Daisyworld with Lotka-Volterra Predators.
+
+The original script was developed by Dr. Robin Hankin and can be found at:
+https://github.com/RobinHankin/daisyworld
+
+The canonical reference is:
+
+A. J. Watson and J. E. Lovelock 1983. "Biological homeostasis of the
+global environment: the parable of Daisyworld".  _Tellus_ 35B:284--289
+
+First, define a function `daisy()` that runs the ODE and returns the
+equilibrium configuration, we primarily use this for investigation. 
+Parameter values can be changed each run.
+
+```{r definedaisy}
+#Function with herbivores 
+#Change values within initial_state to investigate differences.
+#W (White Daisies), B (Black Daisies), P (Herbivore Predators)
+
+daisy <- function(parameters, ..., all=FALSE){  # something like daisy(params, L=1.2,all=T)
+  a <- list(...)
+  element <- names(a)
+  value <- as.numeric(a)
+  parameters[[element]] <- value
+  initial_state <- c(W=0.8, B=0.1,P=0.1) # initial population values as %.   
+  times <- seq(1,100, by = 1)      # time units for output
+  jj <- ode(y = initial_state, times = times, func = watson, parms = parameters)
+  if(all){
+    return(jj)
+  } else {
+    out <- c(jj[nrow(jj),-1])  # column 1 of jj is 'time' return every column except first column
+  }
+  out <- c(value,out)
+  names(out) <-c(element,"W","B","P","T_e")
+  return(out)
+}
+
+```
+
+Define `daisy2()` function, we primarily use this to investigate model outputs 
+without Herbivores. This will be used for plotting comparisons below as well.
+
+```{r definedaisy}
+#Function without herbivores 
+#Change values within initial_state to investigate differences.
+#W (White Daisies), B (Black Daisies), P (Herbivore Predators)
+
+daisy2 <- function(parameters, ..., all=FALSE){  # something like daisy(params,L=1.2,all=T)
+  a <- list(...)
+  element <- names(a)
+  value <- as.numeric(a)
+  parameters[[element]] <- value
+  initial_state <- c(W=0.9, B=0,P=0) # initial population values as %.  
+  times <- seq(1,100, by = 1)      # time units for output
+  jj <- ode(y = initial_state, times = times, func = watson, parms = parameters)
+  if(all){
+    return(jj)
+  } else {
+    out <- c(jj[nrow(jj),-1])  # column 1 of jj is 'time' return every column except first column
+  }
+  out <- c(value,out)
+  names(out) <-c(element,"W","B","P","T_e")
+  return(out)
+}
+
+```
+
+
+
+```{R}
+#Store tested results of each run into variable 
+#Parameters can be changed in each run, e.g daisy(parameters,L=1.3,all=TRUE)
+
+test<-daisy(parameters,L=1,all=TRUE)   #Model with Herbivores
+test2<-daisy2(parameters,L=1,all=TRUE) #Model w/o Herbivores
+
+#Plot test results
+plot(test)     #Model with Herbivores
+plot(test2)    #Model w/o Herbivores
+```
+
+```{r}
+#Store results as table
+
+#Convert to dataframe
+df <- as.data.frame(test)
+
+DT::datatable(df, 
+              extensions = c('FixedColumns',"FixedHeader"),
+              options = list(scrollX = TRUE, 
+                             paging=TRUE,
+                             fixedHeader=FALSE))
+
+```
+
+Now we can run `daisy()` across a range of luminosity `L`:
+
+```{r usedaisy}
+#Compute Temperature as a function of Luminosity values and store into matrix
+#Calculations for model WITH herbivores
+
+L <- seq(from=0.6,to=2.4,by=0.02) #luminosity
+M <- matrix(0,length(L),5)
+
+for(i in seq_along(L)){
+  M[i,] <- daisy(parameters,L=L[i])
+}
+colnames(M) <- c("L","W","B","P","T_e")
+
+head(M)
+```
+
+```{r usedaisy}
+#Compute Temperature as a function of Luminosity values
+#Calculations for model WITHOUT herbivores
+
+L <- seq(from=0.6,to=2.4,by=0.02) #luminosity
+M_new <- matrix(0,length(L),5)
+
+for(i in seq_along(L)){
+  M_new[i,] <- daisy2(parameters,L=L[i])
+}
+colnames(M_new) <- c("L","W","B","P","T_e")
+head(M_new)
+
+```
+
+
+```{r}
+#Monochromatic Daisyworld Plot
+#Plot both with and w/o Herbivores model output in comparison
+
+plot(T_e~L,data=M_new,type='b',main="Planetary temperature as a function of luminosity")
+points(T_e~L,data=M,type='l',col='red',lty="dashed")
+legend("topleft",col=c("black","red"),legend=c("Monochromatic H & M Daisyworld w/o Herbivores",
+                                               "Monochromatic H & M Daisyworld with Herbivores")
+,lty=1:2)
+```
+
+```{r}
+#Bichromatic Daisyworld Plot
+#Plot both with and w/o Herbivores model output in comparison
+plot(T_e~L,data=M_new,type='b',main="Planetary temperature as a function of luminosity")
+points(T_e~L,data=M,type='l',col='red',lty="dashed")
+abline(v=0.76, col="cyan3")  #Luminosity = 0.76 (Where oscillations were discovered)
+abline(v=1.3, col="cyan3")   #Luminosity = 1.3 (Where oscillations were discovered)
+legend("topleft",col=c("black","red","cyan3","cyan3"),
+       legend=c("Bichromatic H&M Daisyworld w/o Herbivores",
+                "Bichromatic H&M Daisyworld with Herbivores")
+,lty=1:2)
+text(x=c(0.87,1.4),
+     y=c(-5,-5),
+     label=c("L=0.76","L=1.3"),
+     col=c("cyan4","cyan4"))
+
+```
