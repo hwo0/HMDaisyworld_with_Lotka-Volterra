@@ -1,6 +1,6 @@
 ## Supporting functions for daisyworld
 # 7th Jun 2022
-# Adjusted with Lotka-Volterra Equations (addition of rabbits)
+# Adjusted with Lotka-Volterra Equations (addition of Herbivores)
 # Developed based on Dr.Robin Hankin's initial scripts
 # Found at: https://github.com/RobinHankin/daisyworld
 
